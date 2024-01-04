@@ -4,27 +4,35 @@ import java.util.List;
 
 import com.foot.entities.Equipe;
 import com.foot.entities.Matchs;
-import com.foot.entities.MatchsJoue;
+
 
 public interface IMatchsService {
 	
 	public List<Matchs> insertMatchs();
-	public Matchs updateMatchs(long id);
-	public String deleteMatchsMessage(long id);
-	public Matchs deleteMatchs(long id);
+	public Matchs updateMatchs(String id);
+	public String deleteMatchsMessage(String id);
+	public Matchs deleteMatchs(String id);
 	public Matchs insertMatchs(Matchs m);
 	
-	public List<MatchsJoue> insertMatchsJour();
-	public MatchsJoue updateMatchsJoue(long id);
-	public String deleteMatchsJoueMessage(long id);
-	public MatchsJoue deleteMatchsJoue(long id);
-	public MatchsJoue insertMatchsJoue(MatchsJoue m);
+	
+	public List<Matchs> misajour();
+	
+	public List<Matchs> getNextMatchs();
+	
+	public List<Matchs> getLast7MatchsIn(String name,String date);
+	public List<Matchs> getLast7MatchsOut(String name,String date);
+	
+	public List<Matchs> getPronostic();
+	
+	
+	
+	public String deleteMatchsJoueMessage(String id);
 	
 	public List<Matchs> findMatchsByEquipeAndSaison(String equipe,String saison);
 	public List<Matchs> findMatchsJouerByEquipeInAndSaison(String equipe);
-	public List<MatchsJoue> findMatchsJoueByEquipeAndSaison(String equipe,String saison);
-	public List<MatchsJoue> findMatchsJoueByEquipeInAndSaison(String equipe,String saison);
+	
 	
 	public Equipe getStatByEquipe(String name);
+	public Equipe getStatByEquipeAndDate(String name,String date);
 
 }

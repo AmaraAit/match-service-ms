@@ -16,6 +16,19 @@ public class Equipe {
 	int id;
 	String name;
 	String championnat;
-	double deuxEM;
+	double deuxEMD;
+	double deuxEME;
+	double matchNULLD;
+	double matchNULLE;
+	double matchGAGNED;
+	double matchGAGNEE;
+	double matchPERDUD;
+	double matchPERDUE;
+	int nombreBUTMARQUE;
+	int nombreBUTENCAISSE;
+	int nombreMATCHMARQUE;
+	int nombreMATCHENCAISSE;
+	int nombreTOTALMATCHS;
+	
 
 }
