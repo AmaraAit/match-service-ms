@@ -3,6 +3,7 @@ package com.foot.metier;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -16,9 +17,11 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Service;
 
+import com.foot.dao.MatchsGoRepository;
 import com.foot.dao.MatchsRepository;
 import com.foot.entities.Equipe;
 import com.foot.entities.Matchs;
+import com.foot.entities.MatchsGo;
 
 
 
@@ -27,13 +30,11 @@ import com.foot.entities.Matchs;
 public class MatchsServiceImp implements IMatchsService{
 	MatchsRepository matchsRepository;
 	
+	MatchsGoRepository matchsGoRepository;
 	
-	
-
-	public MatchsServiceImp(MatchsRepository matchsRepository) {
-		
+	public MatchsServiceImp(MatchsRepository matchsRepository, MatchsGoRepository matchsGoRepository) {
 		this.matchsRepository = matchsRepository;
-		
+		this.matchsGoRepository = matchsGoRepository;
 	}
 
 	public List<Matchs> insertMatchs(String url,String saison,String league) {
@@ -63,20 +64,19 @@ public class MatchsServiceImp implements IMatchsService{
 						bEO=Integer.parseInt(but[1]);
 						System.out.println();
 						if(d!="") {
-						Matchs m=Matchs.builder()
-								.id(UUID.randomUUID().toString())
-								.equipeIn(headline.select("td[data-stat=home_team]").text())
-								.equipeOut(headline.select("td[data-stat=away_team]").text())
-								.url("https://fbref.com"+scoreurl.select("a").attr("href"))
-								.equipeDom(getStatByEquipeAndDate(headline.select("td[data-stat=home_team]").text(), d))
-								.equipeExt(getStatByEquipeAndDate(headline.select("td[data-stat=away_team]").text(), d))
-								.dateMatch(d)
-								.championnat(league)
-								.saison(saison)
-								.bEI(bEI)
-								.bEO(bEO)
-								.build();
-						matchsRepository.save(m);
+						MatchsGo m=new MatchsGo();
+								m.setId(UUID.randomUUID().toString());
+								m.setEquipeIn(headline.select("td[data-stat=home_team]").text());
+								m.setEquipeOut(headline.select("td[data-stat=away_team]").text());
+								m.setChampionnat(league);
+								m.setDateMatch(d);
+								m.setSaison(saison);
+								m.setEquipeDom(getStatByEquipeAndDate(headline.select("td[data-stat=home_team]").text(), d));
+								m.setEquipeExt(getStatByEquipeAndDate(headline.select("td[data-stat=away_team]").text(), d));
+								m.setUrl("https://fbref.com"+scoreurl.select("a").attr("href"));
+								m.setBEI(bEI);
+								m.setBEO(bEO);
+						matchsGoRepository.save(m);
 						}
 					}
 				}else if(headline.select("td[data-stat=home_team]").text()!=""){
@@ -84,12 +84,10 @@ public class MatchsServiceImp implements IMatchsService{
 							.id(UUID.randomUUID().toString())
 							.equipeIn(headline.select("td[data-stat=home_team]").text())
 							.equipeOut(headline.select("td[data-stat=away_team]").text())
-							.url("https://fbref.com"+scoreurl.select("a").attr("href"))
 							.dateMatch(d)
 							.championnat(league)
 							.saison(saison)
-							.bEI(bEI)
-							.bEO(bEO)
+							
 							.build();
 					matchsRepository.save(m);
 					listMatch.add(m);
@@ -133,12 +131,23 @@ public class MatchsServiceImp implements IMatchsService{
 
 
 	@Override
-	public Matchs updateMatchs(String id) {
+	public MatchsGo updateMatchs(String id) {
 		Matchs m = matchsRepository.getById(id);
-		m.setBEI(-1);
-		m.setBEO(-1);
+		MatchsGo mG=new MatchsGo();
+		mG.setId(m.getId());
+		mG.setChampionnat(m.getChampionnat());
+		mG.setDateMatch(m.getDateMatch());
+		mG.setSaison(m.getSaison());
+		mG.setEquipeIn(m.getEquipeIn());
+		mG.setEquipeOut(m.getEquipeOut());
+		mG.setEquipeDom(m.getEquipeDom());
+		mG.setEquipeExt(m.getEquipeExt());
+		mG.setBEI(0);
+		mG.setBEO(0);
+		mG.setUrl(id);
 		
-		return m;
+		
+		return mG;
 	}
 
 
@@ -207,14 +216,14 @@ public class MatchsServiceImp implements IMatchsService{
 
 	@Override
 	public Equipe getStatByEquipe(String name) {
-		List<Matchs> listeMatchs= new ArrayList<>();
-		List<Matchs> listeMatchsDOM= new ArrayList<>();
-		List<Matchs> listeMatchsEXT= new ArrayList<>();
+		List<MatchsGo> listeMatchs= new ArrayList<>();
+		List<MatchsGo> listeMatchsDOM= new ArrayList<>();
+		List<MatchsGo> listeMatchsEXT= new ArrayList<>();
 		double p;
 		String c = null;
 		int i=0;
 		int totalMatchsJouer=0;
-		for (Matchs matchs : matchsRepository.findMatchsByEquipeInOrOutAndSaison(name, "2023-2024")) {
+		for (MatchsGo matchs : matchsGoRepository.findMatchsByEquipeInOrOutAndSaison(name, "2023-2024")) {
 			if(matchs.getBEI()>=0) {
 				totalMatchsJouer += 1;
 				if(matchs.getBEI()>0 && matchs.getBEO()>0) {
@@ -241,34 +250,31 @@ public class MatchsServiceImp implements IMatchsService{
 		return e;
 	}
 	
-	@Override
-	public List<Matchs> misajour() {
-		List<Matchs> l=new ArrayList<>();
-		for (Matchs m : matchsRepository.findAll()) {
-			if(m.getUrl().equals("https://fbref.com")) {
-				m.setBEI(-1);
-				m.setBEO(-1);
-				matchsRepository.save(m);
-				l.add(m);
-			}
-			
-		}
-		
-		return l;
-	}
+	
 
 	@Override
 	public List<Matchs> getNextMatchs() {
 		
 		List<Matchs> nextMatch=new ArrayList<>();
+		LocalDate dateNow=LocalDate.now();
+		String day = null,month = null;
+		if(dateNow.getMonthValue()<10) {
+			month="0"+dateNow.getMonthValue();
+		}
+		if(dateNow.getDayOfMonth()<10) {
+			day="0"+dateNow.getDayOfMonth();
+		}
+		
+		String dateaujourdhui=dateNow.getYear()+"-"+month+"-"+day;
+		System.out.println("****************  "+dateaujourdhui+"  ****************************");
 		int i=0;
-		for (Matchs matchs : matchsRepository.findMatchsordered()) {
-			if(matchs.getBEI()<0) {
+		for (Matchs matchs : matchsRepository.findMatchsordered(dateaujourdhui)) {
+			
 				matchs.setEquipeDom(getStatByEquipeAndDate(matchs.getEquipeIn(), matchs.getDateMatch()));
 				matchs.setEquipeExt(getStatByEquipeAndDate(matchs.getEquipeOut(), matchs.getDateMatch()));
 				nextMatch.add(matchs);
 				i += 1;
-			}
+			
 			if(i>=30) {
 				break;
 			}
@@ -276,11 +282,11 @@ public class MatchsServiceImp implements IMatchsService{
 		return nextMatch;
 	}
 
-	@Override
-	public List<Matchs> getLast7MatchsIn(String name,String date) {
+	
+	List<MatchsGo> getLast7MatchsIn(String name,String date) {
 		int i=0;
-		List<Matchs> l=new ArrayList<>();
-		for (Matchs e : matchsRepository.findLast7MatchsIn(name, date)) {
+		List<MatchsGo> l=new ArrayList<>();
+		for (MatchsGo e : matchsGoRepository.findLast7MatchsIn(name, date)) {
 			if(i<=6) {
 				l.add(e);
 				i += 1;
@@ -289,11 +295,10 @@ public class MatchsServiceImp implements IMatchsService{
 		return l;
 	}
 
-	@Override
-	public List<Matchs> getLast7MatchsOut(String name,String date) {
+	List<MatchsGo> getLast7MatchsOut(String name,String date) {
 		int i=0;
-		List<Matchs> l=new ArrayList<>();
-		for (Matchs e : matchsRepository.findLast7MatchsOut(name, date)) {
+		List<MatchsGo> l=new ArrayList<>();
+		for (MatchsGo e : matchsGoRepository.findLast7MatchsOut(name, date)) {
 			if(i<=6) {
 				l.add(e);
 				i += 1;
@@ -305,8 +310,8 @@ public class MatchsServiceImp implements IMatchsService{
 	@Override
 	public Equipe getStatByEquipeAndDate(String name, String date) {
 		List<Matchs> listeMatchs= new ArrayList<>();
-		List<Matchs> listeMatchsDOM= matchsRepository.findLast7MatchsIn(name, date);
-		List<Matchs> listeMatchsEXT= matchsRepository.findLast7MatchsOut(name, date);
+		List<MatchsGo> listeMatchsDOM= matchsGoRepository.findLast7MatchsIn(name, date);
+		List<MatchsGo> listeMatchsEXT= matchsGoRepository.findLast7MatchsOut(name, date);
 		double p;
 		double deuxEMD = 0;
 		double deuxEME = 0;
@@ -324,7 +329,7 @@ public class MatchsServiceImp implements IMatchsService{
 		String c = null;
 		int i=0;
 		int cont=0;
-		for (Matchs matchs : listeMatchsDOM) {
+		for (MatchsGo matchs : listeMatchsDOM) {
 			if(matchs.getBEI()>=0) {
 				cont+=1;
 				if(cont>6) {
@@ -356,7 +361,7 @@ public class MatchsServiceImp implements IMatchsService{
 			c=matchs.getChampionnat();
 		}
 	    cont=0;
-		for (Matchs matchs : listeMatchsEXT) {
+		for (MatchsGo matchs : listeMatchsEXT) {
 			System.out.println(matchs.toString());
 			if(matchs.getBEO()>=0) {
 				cont+=1;
@@ -386,7 +391,7 @@ public class MatchsServiceImp implements IMatchsService{
 			c=matchs.getChampionnat();
 		}
 		
-		double moyenDEM=listeMatchs.size()*100/nombreTOTALMATCHS;
+		
 		
 
 		Random r = new Random();
